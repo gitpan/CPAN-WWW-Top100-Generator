@@ -16,64 +16,11 @@ This module (for now) has no moving parts...
 
 use 5.008;
 use strict;
-use CPANTS::Weight 0.02 ();
-use HTML::Spry::DataSet ();
+use File::Spec          0.80 ();
+use CPANTS::Weight      0.08 ();
+use HTML::Spry::DataSet 0.01 ();
 
-our $VERSION = '0.02';
-
-# SQL to select the Heavy 100
-use constant SQL_H100 => <<'END_SQL';
-select
-	d.weight as score,
-	a.pauseid,
-	d.dist
-from
-	dist_weight d,
-	author_weight a
-where
-	d.author = a.id
-order by
-	score desc,
-	a.pauseid asc,
-	d.dist asc
-limit 100
-END_SQL
-
-# SQL to select the Volatile 100
-use constant SQL_V100 => <<'END_SQL';
-select
-	d.volatility as score,
-	a.pauseid,
-	d.dist
-from
-	dist_weight d,
-	author_weight a
-where
-	d.author = a.id
-order by
-	score desc,
-	a.pauseid asc,
-	d.dist asc
-limit 100
-END_SQL
-
-# SQL to select the Debian Most Wanted
-use constant SQL_D100 => <<'END_SQL';
-select
-	d.volatility * d.debian_candidate as score,
-	a.pauseid,
-	d.dist
-from
-	dist_weight d,
-	author_weight a
-where
-	d.author = a.id
-order by
-	score desc,
-	a.pauseid asc,
-	d.dist asc
-limit 100
-END_SQL
+our $VERSION = '0.03';
 
 
 
@@ -96,29 +43,37 @@ sub run {
 
 	# Prepare the dataset object
 	my $dataset = HTML::Spry::DataSet->new;
-	
+
 	# Build the Heavy 100 index
-	my $h100 = CPANTS::Weight->selectall_arrayref( SQL_H100 );
-	$class->prepend_rank( $h100 );
 	$dataset->add( 'ds1',
 		[ 'Rank', 'Dependencies', 'Author', 'Distribution' ],
-		@$h100,
+		$class->report(
+			sql_score => 'd.weight',
+		),
 	);
 
 	# Build the Volatile 100 index
-	my $v100 = CPANTS::Weight->selectall_arrayref( SQL_V100 );
-	$class->prepend_rank( $v100 );
 	$dataset->add( 'ds2',
 		[ 'Rank', 'Dependents', 'Author', 'Distribution' ],
-		@$v100,
+		$class->report(
+			sql_score => 'd.volatility',
+		),
 	);
 
 	# Build the Debian 100 index
-	my $d100 = CPANTS::Weight->selectall_arrayref( SQL_D100 );
-	$class->prepend_rank( $d100 );
 	$dataset->add( 'ds3',
 		[ 'Rank', 'Dependents', 'Author', 'Distribution' ],
-		@$d100,
+		$class->report(
+			sql_score => 'd.volatility * d.debian_candidate',
+		)
+	);
+
+	# Build the Downstream 100 index
+	$dataset->add( 'ds4',
+		[ 'Rank', 'Dependents', 'Author', 'Distribution' ],
+		$class->report(
+			sql_score => 'd.volatility * d.enemy_downstream',
+		),
 	);
 
 	# Write out the daa file
@@ -129,11 +84,30 @@ sub run {
 	return 1;
 }
 
+sub report {
+	my $class  = shift;
+	my %param = @_;
+	my $list  = CPANTS::Weight->selectall_arrayref(
+		$class->_distsql( %param ),
+	);
+	unless ( $list ) {
+		die("Report SQL failed in " . CPANTS::Weight->dsn);
+	}
+	$class->_rank( $list );
+	return @$list;
+}
+
+
+
+
+
+#####################################################################
+# Support Methods
+
 # Prepends ranks in place (ugly, but who cares for now)
-sub prepend_rank {
+sub _rank {
 	my $class = shift;
 	my $table = shift;
-
 	my $rank  = 0;
 	my @ranks = ();
 	foreach my $i ( 0 .. $#$table ) {
@@ -157,6 +131,32 @@ sub prepend_rank {
 	}
 
 	return $table;
+}
+
+sub _distsql {
+	my $class = shift;
+	my %param = @_;
+	$param{sql_limit} ||= 100;
+	unless ( defined $param{sql_score} ) {
+		die "Failed to define a score metric";
+	}
+	return <<"END_SQL";
+select
+	$param{sql_score} as score,
+	a.pauseid,
+	d.dist
+from
+	dist_weight d,
+	author_weight a
+where
+	d.author = a.id
+order by
+	score desc,
+	a.pauseid asc,
+	d.dist asc
+limit
+	$param{sql_limit}
+END_SQL
 }
 
 1;

@@ -2,9 +2,13 @@
 
 use 5.008;
 use strict;
-use CPAN::WWW::Top100::Generator ();
+use warnings;
+use CPAN::WWW::Top100::Generator 0.04 ();
 
-our $VERSION = '0.03';
+our $VERSION = '0.04';
 
-my $dir = $ARGV[0] or die "Did not provide a build directory";
+my $dir = $ARGV[0];
+unless ( $dir ) {
+	die "Did not provide a build directory";
+}
 CPAN::WWW::Top100::Generator->run($dir),

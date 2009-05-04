@@ -16,11 +16,12 @@ This module (for now) has no moving parts...
 
 use 5.008;
 use strict;
+use warnings;
 use File::Spec          0.80 ();
-use CPANTS::Weight      0.08 ();
+use CPANTS::Weight      0.10 ();
 use HTML::Spry::DataSet 0.01 ();
 
-our $VERSION = '0.03';
+our $VERSION = '0.04';
 
 
 
@@ -73,6 +74,38 @@ sub run {
 		[ 'Rank', 'Dependents', 'Author', 'Distribution' ],
 		$class->report(
 			sql_score => 'd.volatility * d.enemy_downstream',
+		),
+	);
+
+	# Build the Meta 100 index (Level 1)
+	$dataset->add( 'ds5',
+		[ 'Rank', 'Dependents', 'Author', 'Distribution' ],
+		$class->report(
+			sql_score => 'd.volatility * d.meta1',
+		),
+	);
+
+	# Build the Meta 100 index (Level 2)
+	$dataset->add( 'ds6',
+		[ 'Rank', 'Dependents', 'Author', 'Distribution' ],
+		$class->report(
+			sql_score => 'd.volatility * d.meta2',
+		),
+	);
+
+	# Build the Meta 100 index (Level 3)
+	$dataset->add( 'ds7',
+		[ 'Rank', 'Dependents', 'Author', 'Distribution' ],
+		$class->report(
+			sql_score => 'd.volatility * d.meta3',
+		),
+	);
+
+	# Build the FAIL 100 index
+	$dataset->add( 'ds8',
+		[ 'Rank', 'Volatility x FAIL', 'Author', 'Distribution' ],
+		$class->report(
+			sql_score => 'd.volatility * d.fails',
 		),
 	);
 

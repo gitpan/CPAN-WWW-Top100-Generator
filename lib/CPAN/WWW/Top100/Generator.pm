@@ -18,10 +18,12 @@ use 5.008;
 use strict;
 use warnings;
 use File::Spec          0.80 ();
-use CPANTS::Weight      0.10 ();
 use HTML::Spry::DataSet 0.01 ();
+use CPANTS::Weight      0.14 {
+	maxage => 24 * 3600 * 3600
+};
 
-our $VERSION = '0.04';
+our $VERSION = '0.05';
 
 
 
@@ -103,7 +105,7 @@ sub run {
 
 	# Build the FAIL 100 index
 	$dataset->add( 'ds8',
-		[ 'Rank', 'Volatility x FAIL', 'Author', 'Distribution' ],
+		[ 'Rank', 'Score', 'Author', 'Distribution' ],
 		$class->report(
 			sql_score => 'd.volatility * d.fails',
 		),

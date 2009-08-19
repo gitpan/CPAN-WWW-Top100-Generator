@@ -29,4 +29,4 @@ resources:
   ChangeLog: http://fisheye2.atlassian.com/changelog/cpan/trunk/CPAN-WWW-Top100-Generator
   license: http://dev.perl.org/licenses/
   repository: http://svn.ali.as/cpan/trunk/CPAN-WWW-Top100-Generator
-version: 0.07
+version: 0.08
